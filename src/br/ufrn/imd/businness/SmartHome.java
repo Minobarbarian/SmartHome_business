@@ -1,80 +1,77 @@
 package br.ufrn.imd.businness;
 
 import br.ufrn.imd.annotations.*;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.json.JSONObject;
 
 @RequestMap(router = "/smart")
 public class SmartHome {
-	private String lightStat;
-	private int thermostatTemp;
+	private final AtomicReference<String> lightStat;
+	private final AtomicInteger thermostatTemp;
 	
 	public SmartHome() {
-		this.lightStat = "OFF";
-		this.thermostatTemp = 22;
+		this.lightStat = new AtomicReference<>("OFF");
+        this.thermostatTemp = new AtomicInteger(22);
 	}
 	
-	public String getLightStat() {
-		return lightStat;
+	private String getLightStat() {
+		return lightStat.get();
 	}
-	public int getThermostatTemp() {
-		return thermostatTemp;
+	private int getThermostatTemp() {
+		return thermostatTemp.get();
+	}
+	private void setLightStat(String stat) {
+		lightStat.set(stat);
+	}
+	private void setThermostatTemp(int temp) {
+		thermostatTemp.set(temp);
 	}
 	
 	@Get(router = "/state")
 	public JSONObject stateString() {
-		JSONObject result = new JSONObject();
-		result.put("Light", lightStat);
-		result.put("Temperature", thermostatTemp);
-		return result;
+		return createJsonResponse("Light", getLightStat(), "Temperature", getThermostatTemp());
 	}
 	
 	@Post(router = "/regulate")
 	public JSONObject setThermostatTemp(JSONObject jsonObject) {
-		this.thermostatTemp = jsonObject.getInt("var1");
-		JSONObject result = new JSONObject();
-		result.put("status", "success");
-		result.put("Temperature", thermostatTemp);
-		return result;
+		setThermostatTemp(jsonObject.getInt("var1"));
+		return createJsonResponse("status", "success","Temperature", getThermostatTemp());
 	}
 	
 	@Post(router = "/switch")
-	public JSONObject lightSwitch() {
-		switch(this.lightStat) {
-		case "ON":
-			this.lightStat = "OFF";
-			break;
-		case "OFF":
-			this.lightStat = "ON";
-			break;
-		}
-		JSONObject result = new JSONObject();
-		result.put("status", "success");
-		result.put("Light", lightStat);
-		return result;
+	public  JSONObject lightSwitch() {
+		setLightStat(getLightStat().equals("ON")? "OFF" : "ON");
+		return createJsonResponse("status", "success", "Light", getLightStat());
 	}
 	
 	@Put(router = "/update")
     public JSONObject updateSettings(JSONObject jsonObject) {
         if (jsonObject.has("Light")) {
-            this.lightStat = jsonObject.getString("Light");
+        	setLightStat(jsonObject.getString("Light"));
         }
         if (jsonObject.has("Temperature")) {
-            this.thermostatTemp = jsonObject.getInt("Temperature");
+        	setThermostatTemp(jsonObject.getInt("Temperature"));
         }
-        JSONObject result = new JSONObject();
-        result.put("status", "success");
-        result.put("Light", lightStat);
-        result.put("Temperature", thermostatTemp);
-        return result;
+        return createJsonResponse("status", "success","Light", getLightStat(),"Temperature", getThermostatTemp());
     }
 
     @Delete(router = "/reset")
     public JSONObject resetSettings() {
-        this.lightStat = "OFF";
-        this.thermostatTemp = 22;
-        JSONObject result = new JSONObject();
-        result.put("status", "success");
-        result.put("message", "Settings have been reset to default");
-        return result;
+    	setLightStat("OFF");
+    	setThermostatTemp(22);
+        return createJsonResponse("status", "success","message", "Settings have been reset to default");
+    }
+    
+    private JSONObject createJsonResponse(Object... keyValuePairs) {
+    	JSONObject result = new JSONObject();
+    	for(int i = 0; i < keyValuePairs.length; i += 2) {
+    		if (keyValuePairs[i] instanceof String) {
+                result.put((String) keyValuePairs[i], keyValuePairs[i + 1]);
+            }
+    	}
+    	return result;
     }
 }
