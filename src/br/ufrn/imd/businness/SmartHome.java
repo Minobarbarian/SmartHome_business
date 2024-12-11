@@ -37,8 +37,8 @@ public class SmartHome {
 	
 	@Post(router = "/regulate")
 	public JSONObject setThermostatTemp(JSONObject jsonObject) {
-		setThermostatTemp(jsonObject.getInt("var1"));
-		return createJsonResponse("status", "success","Temperature", getThermostatTemp());
+	    setThermostatTemp(jsonObject.getJSONObject("body").getInt("var1"));
+	    return createJsonResponse("status", "success", "Temperature", getThermostatTemp());
 	}
 	
 	@Post(router = "/switch")
